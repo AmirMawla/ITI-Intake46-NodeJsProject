@@ -1,45 +1,37 @@
 const Post = require('../models/post.model');
+const APIError = require('../Errors/APIError');
+const PostErrors = require('../Errors/PostErrors');
 
-const createPost = async ({ title, content, author, tags, published }) => {
- 
-
-  
-  if (title.length < 3 || title.length > 30) {
-    return { error: 'Title must be between 3 and 30 characters long' };
-  }
-
-  if (content.length < 3 || content.length > 200) {
-    return { error: 'Content must be between 3 and 200 characters long' };
-  }
-
-  if (author.length < 3 || author.length > 30) {
-    return { error: 'Author must be between 3 and 30 characters long' };
-  }
-
-  const post = await Post.create({ title, content, author, tags, published });
+const createPost = async ({ title, content, author, tags, published, userId }) => {
+  const post = await Post.create({ title, content, author, tags, published, userId });
   if (!post) {
-    return { error: 'Failed to create post' };
+    throw new APIError('Failed to create post', 500);
   }
 
-  return { data: post };
+  return post;
 };
 
-const getPosts = async ({ page = 1, limit = 10 }) => {
+const getPosts = async ({ page = 1, limit = 10 }, userId) => {
   page = Number(page);
   limit = Number(limit);
 
   const postsPromise = Post.find({})
+    .populate('userId', 'name email')
     .skip((page - 1) * limit)
     .limit(limit);
+
   const totalPromise = Post.countDocuments();
   const [posts, total] = await Promise.all([postsPromise, totalPromise]);
 
-  if (!posts || posts.length === 0) {
-    return { error: 'No posts found' };
-  }
+  const data = posts.map((post) => {
+    const obj = post.toObject();
+    const ownerId = obj.userId?._id?.toString();
+    obj.isOwner = ownerId && userId ? ownerId === userId.toString() : false;
+    return obj;
+  });
 
   return {
-    data: posts,
+    data,
     pagination: {
       page,
       limit,
@@ -49,45 +41,51 @@ const getPosts = async ({ page = 1, limit = 10 }) => {
   };
 };
 
-const getPostById = async (id) => {
-  const post = await Post.findOne({ _id: id });
+const getPostById = async (id, userId) => {
+  const post = await Post.findById(id).populate('userId', 'name email');
   if (!post) {
-    return { error: 'Post not found' };
+    throw PostErrors.PostNotFound;
   }
-  return { data: post };
+
+  const obj = post.toObject();
+  const ownerId = obj.userId?._id?.toString();
+  obj.isOwner = ownerId && userId ? ownerId === userId.toString() : false;
+
+  return obj;
 };
 
-const updatePost = async (id, { title, content, author, tags, published }) => {
-  if (!title || !content || !author) {
-    return { error: 'All fields are required' };
+const updatePost = async (id, { title, content, author, tags, published }, userId) => {
+  const post = await Post.findById(id);
+  if (!post) {
+    throw PostErrors.PostNotFound;
   }
 
-  if (content.length < 3 || content.length > 200) {
-    return { error: 'Content must be between 3 and 200 characters long' };
-  }
-  if (author.length < 3 || author.length > 30) {
-    return { error: 'Author must be between 3 and 30 characters long' };
+  if (!post.userId || !userId || post.userId.toString() !== userId.toString()) {
+    throw PostErrors.UnauthorizedPostAccess;
   }
 
-  const updatedPost = await Post.findOneAndUpdate(
-    { _id: id },
-    { title, content, author, tags, published },
+  const updatedPost = await Post.findByIdAndUpdate(
+    id,
+    { title, content, author, tags, published, userId: userId },
     { new: true }
   );
 
-  if (!updatedPost) {
-    return { error: 'Post not found' };
-  }
-
-  return { data: updatedPost };
+  return updatedPost;
 };
 
-const deletePost = async (id) => {
-  const deletedPost = await Post.findOneAndDelete({ _id: id });
-  if (!deletedPost) {
-    return { error: 'Post not found' };
+const deletePost = async (id, userId) => {
+  const post = await Post.findById(id);
+  if (!post) {
+    throw PostErrors.PostNotFound;
   }
-  return { data: deletedPost };
+
+  if (!post.userId || !userId || post.userId.toString() !== userId.toString()) {
+    throw PostErrors.UnauthorizedPostAccess;
+  }
+
+  const deletedPost = await Post.findByIdAndDelete(id);
+
+  return deletedPost;
 };
 
 module.exports = {

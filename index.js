@@ -1,23 +1,49 @@
-
+const env = require('dotenv').config();
+const errorHandler = require('./middlewares/errorhandler');
+const cors = require('cors');
 const express = require('express');
 const mongoose = require('mongoose');
+const helmet = require("helmet");
+const { sanitizeMongoInput } = require("express-v5-mongo-sanitize");
+const { xss } = require('express-xss-sanitizer');
+const hpp = require('hpp');
+require('dotenv').config();
+
+const rateLimiter = require('./middlewares/rateLimiter');
+
 const userRoutes = require('./routes/user.routes');
 const postRoutes = require('./routes/post.routes');
+const donationRoutes = require('./routes/donation.routes');
+
 
 const app = express();
-app.use(express.json());
 
+// app level middleware
+app.set('trust proxy', 1);
+app.use(express.json());
+app.use(cors());
+app.use(helmet());
+app.use(sanitizeMongoInput);
+app.use(xss());
+app.use(hpp());
+app.use(rateLimiter);
+
+
+
+// routers
 app.use('/users', userRoutes);
 app.use('/posts', postRoutes);
+app.use('/donations', donationRoutes);
+app.use(errorHandler);
 
-app.listen(3000, () => {
-  mongoose.connect('mongodb://localhost:27017/ITI-NodeJs-db')
+
+// connect to mongodb
+const Port = Number(process.env.PORT)
+
+app.listen(Port, () => {
+  mongoose.connect(`${process.env.MONGODB_URI}/${process.env.DB_NAME}`)
     .then(() => {
       console.log('✅✅ Connected to MongoDB');
-    })
-    .catch((err) => {
-      console.log('❌❌ Failed to connect to MongoDB');
-      console.log(err);
     });
-  console.log('✅✅ Server is running on Port:3000');
+  console.log(`✅✅ Server is running on Port:${Port}`);
 });

@@ -1,110 +1,85 @@
-const mongoose = require('mongoose');
 const userService = require('../services/user.service');
 
-const createUser = async (req, res) => {
+
+const Register = async (req, res, next) => {
   const { name, email, password, age } = req.body;
 
-  if (!name || !email || !password || !age) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
-
   try {
-    const result = await userService.createUser({ name, email, password, age });
-
-    if (result.error) {
-      return res.status(400).json({ message: result.error });
-    }
-
-    const user = result.data;
+    const user = await userService.createUser({ name, email, password, age });
     return res.status(201).json({
-      data: { name: user.name, email: user.email, age: user.age },
+      data:user
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+     next(err);
   }
 };
 
-const getAllUsers = async (req, res) => {
-  try {
-    const result = await userService.getUsers(req.query);
 
-    if (result.error) {
-      return res.status(404).json({ message: result.error });
-    }
+
+const Login = async (req, res, next) => {
+  const { email, password } = req.body;
+  try { 
+    const result = await userService.loginUser({ email, password });
+
+    return res.json({ token: result.token, user: result.user });
+  } catch (err) {
+     next(err);
+  }
+};
+
+
+const getAllUsers = async (req, res, next) => {
+  try {
+    console.log(req.query, typeof req.query.page, typeof req.query.limit);
+    const result = await userService.getUsers(req.query);
 
     return res.json({
       data: result.data,
       pagenation: result.pagination,
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+     next(err);
   }
 };
 
-const getUserById = async (req, res) => {
+const getUserById = async (req, res, next) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ message: 'Invalid user ID' });
-  }
 
   try {
-    const result = await userService.getUserById(id);
-
-    if (result.error) {
-      return res.status(404).json({ message: result.error });
-    }
-
-    return res.json({ data: result.data });
+    const user = await userService.getUserById(id);
+    return res.json({ data: user });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+     next(err);
   }
 };
 
-const updateUser = async (req, res) => {
+const updateUser = async (req, res, next) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ message: 'Invalid user ID' });
-  }
 
   try {
-    const result = await userService.updateUser(id, req.body);
-
-    if (result.error) {
-      if (result.error === 'User not found') {
-        return res.status(404).json({ message: result.error });
-      }
-      return res.status(400).json({ message: result.error });
-    }
-
-    return res.json({ data: result.data });
+    const updatedUser = await userService.updateUser(id, req.body);
+    return res.json({ data: updatedUser });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+    next(err);
   }
 };
 
-const deleteUser = async (req, res) => {
+const deleteUser = async (req, res, next) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ message: 'Invalid user ID' });
-  }
 
   try {
-    const result = await userService.deleteUser(id);
-
-    if (result.error) {
-      return res.status(404).json({ message: result.error });
-    }
-
+    const deletedUser = await userService.deleteUser(id);
     return res
       .status(202)
-      .json({ message: 'User deleted successfully', data: result.data });
+      .json({ message: 'User deleted successfully', data: deletedUser });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+   next(err);
   }
 };
 
 module.exports = {
-  createUser,
+  Register, 
+  Login,
   getAllUsers,
   getUserById,
   updateUser,

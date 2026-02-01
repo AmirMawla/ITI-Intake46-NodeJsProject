@@ -18,7 +18,7 @@ const userSchema = new mongoose.Schema(
             type: String,
             required: true ,
             minlength: [8] ,
-            maxlength: [32] 
+            maxlength: [200] 
             // match: [/^[^\s@]+@[^\s@]+\.[^\s@]+$/]
         },
         age: {
@@ -29,7 +29,9 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String, 
-            enum: ['admin', 'user']
+            enum: ['admin', 'user'],
+            default: 'user' ,
+            required: true
         }
     },
     {timestamps: true}

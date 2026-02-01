@@ -1,27 +1,66 @@
 const User = require('../models/user.model');
+const UserErrors = require('../Errors/UserErrors');
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const util = require('util');
+
+const jwtsign = util.promisify(jwt.sign);
+const jwtverify = util.promisify(jwt.verify);
+
 
 const createUser = async ({ name, email, password, age }) => {
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    return { error: 'User already exists' };
+    throw UserErrors.EmailAlreadyExists;
   }
 
-  if (password.length < 8) {
-    return { error: 'Password must be at least 8 characters long' };
-  }
-  if (age < 18 || age > 100) {
-    return { error: 'Age must be between 18 and 100' };
-  }
-  if (name.length < 3 || name.length > 30) {
-    return { error: 'Name must be between 3 and 30 characters long' };
+  const hashedPassword = await bcrypt.hash(password, 10);
+  if (!hashedPassword) {
+    throw UserErrors.InvalidUserData;
   }
 
-  const user = await User.create({ name, email, password, age });
+  const user = await User.create({ name, email, password: hashedPassword, age });
   if (!user) {
-    return { error: 'Failed to create user' };
+    throw UserErrors.InvalidUserData;
   }
+   
+  return {
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    age: user.age,
+    role: user.role,
+  };
+};
 
-  return { data: user };
+
+const loginUser = async ({ email, password }) => {
+  const user = await User.findOne({ email });
+  if (!user) {
+    throw UserErrors.UserNotFound;
+  }
+  const isPasswordValid = await bcrypt.compare(password, user.password);
+  if (!isPasswordValid) {
+    throw UserErrors.InvalidCredentials;
+  }
+  const payload = {
+    userId: user._id,
+    name: user.name,
+    email: user.email,
+    age: user.age,
+    role: user.role,
+  };
+  const token = await jwtsign(payload, process.env.JWT_SECRET, { expiresIn: '1h' });
+  return {
+    token,
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      age: user.age,
+      role: user.role,
+    }
+  };
 };
 
 const getUsers = async ({ page = 1, limit = 10 }) => {
@@ -36,7 +75,7 @@ const getUsers = async ({ page = 1, limit = 10 }) => {
   const [users, total] = await Promise.all([usersPromise, totalPromise]);
 
   if (!users || users.length === 0) {
-    return { error: 'No users found' };
+    throw UserErrors.UserNotFound;
   }
 
   return {
@@ -53,26 +92,19 @@ const getUsers = async ({ page = 1, limit = 10 }) => {
 const getUserById = async (id) => {
   const user = await User.findOne({ _id: id }, { password: 0 });
   if (!user) {
-    return { error: 'User not found' };
+    throw UserErrors.UserNotFound;
   }
-  return { data: user };
+  return user;
 };
 
 const updateUser = async (id, { name, email, age }) => {
-  if (!name || !email || !age) {
-    return { error: 'All fields are required' };
+  const olduser = await getUserById(id);
+  if (!olduser) {
+    throw UserErrors.UserNotFound;
   }
-
   const existingUser = await User.findOne({ email, _id: { $ne: id } });
   if (existingUser) {
-    return { error: 'Email already exists' };
-  }
-
-  if (age < 18 || age > 100) {
-    return { error: 'Age must be between 18 and 100' };
-  }
-  if (name.length < 3 || name.length > 30) {
-    return { error: 'Name must be between 3 and 30 characters long' };
+    throw UserErrors.EmailAlreadyExists;
   }
 
   const updatedUser = await User.findOneAndUpdate(
@@ -82,22 +114,23 @@ const updateUser = async (id, { name, email, age }) => {
   );
 
   if (!updatedUser) {
-    return { error: 'User not found' };
+    throw UserErrors.InvalidUserData;
   }
 
-  return { data: updatedUser };
+  return updatedUser;
 };
 
 const deleteUser = async (id) => {
   const deletedUser = await User.findOneAndDelete({ _id: id });
   if (!deletedUser) {
-    return { error: 'User not found' };
+    throw UserErrors.UserNotFound;
   }
-  return { data: deletedUser };
+  return deletedUser;
 };
 
 module.exports = {
   createUser,
+  loginUser,
   getUsers,
   getUserById,
   updateUser,

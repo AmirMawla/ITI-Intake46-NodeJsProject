@@ -1,40 +1,45 @@
 const mongoose = require('mongoose');
 
 const postSchema = new mongoose.Schema(
-    {
-        title: {
-            type: String,
-            required: true ,
-            minlength: [3] ,
-            maxlength: [30] 
-        },
-        content: {
-            type: String,
-            required: true ,
-            minlength: [3] ,
-            maxlength: [200]
-        },
-        author: {
-            type: String, 
-            required : true ,
-            minlength: [3] ,
-            maxlength: [30] 
-        },
-        tags: {
-            type:[String],
-            required: false 
-        },
-        published: {
-            type: Boolean,
-            default: false 
-        },
-        likes: {
-            type: Number,
-            default: 0 
-        }
+  {
+    title: {
+      type: String,
+      required: true,
+      minlength: [3],
+      maxlength: [30],
     },
-    {timestamps: true}
-) 
+    content: {
+      type: String,
+      required: true,
+      minlength: [3],
+      maxlength: [200],
+    },
+    author: {
+      type: String,
+      required: true,
+      minlength: [3],
+      maxlength: [30],
+    },
+    tags: {
+      type: [String],
+      required: false,
+    },
+    published: {
+      type: Boolean,
+      default: false,
+    },
+    likes: {
+      type: Number,
+      default: 0,
+    },
+    userId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+  },
+  { timestamps: true }
+);
 
 const Post = mongoose.model('Post', postSchema);
 

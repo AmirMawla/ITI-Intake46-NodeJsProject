@@ -1,109 +1,84 @@
-const mongoose = require('mongoose');
 const postService = require('../services/post.service');
+const APIError = require('../Errors/APIError');
 
-const createPost = async (req, res) => {
+const createPost = async (req, res, next) => {
   const { title, content, author, tags, published } = req.body;
-
-  if (!title || !content || !author) {
-    return res.status(400).json({ message: 'All fields are required' });
-  }
+  const { userId } = req.user;
 
   try {
-    const result = await postService.createPost({
+    const post = await postService.createPost({
       title,
       content,
       author,
       tags,
       published,
+      userId
     });
 
-    if (result.error) {
-      return res.status(400).json({ message: result.error });
-    }
-
-    return res.status(201).json({ data: result.data });
+    return res.status(201).json({ data: post });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+    next(err);
   }
 };
 
-const getAllPosts = async (req, res) => {
-  try {
-    const result = await postService.getPosts(req.query);
+const getAllPosts = async (req, res, next) => {
+  const { userId } = req.user;
 
-    if (result.error) {
-      return res.status(404).json({ message: result.error });
-    }
+  try {
+    const result = await postService.getPosts(req.query, userId);
 
     return res.json({
       data: result.data,
       pagenation: result.pagination,
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+    next(err);
   }
 };
 
-const getPostById = async (req, res) => {
+const getPostById = async (req, res, next) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ message: 'Invalid post ID' });
-  }
+  const { userId } = req.user;
 
   try {
-    const result = await postService.getPostById(id);
+    const post = await postService.getPostById(id, userId);
 
-    if (result.error) {
-      return res.status(404).json({ message: result.error });
+    if (!post) {
+      throw new APIError('Post not found', 404);
     }
 
-    return res.json({ data: result.data });
+    return res.json({ data: post });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+   next(err);
   }
 };
 
-const updatePost = async (req, res) => {
+const updatePost = async (req, res, next) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ message: 'Invalid post ID' });
-  }
+  const { userId } = req.user;
 
   try {
-    const result = await postService.updatePost(id, req.body);
+    const updatedPost = await postService.updatePost(id, req.body, userId);
 
-    if (result.error) {
-      if (result.error === 'Post not found') {
-        return res.status(404).json({ message: result.error });
-      }
-      return res.status(400).json({ message: result.error });
-    }
-
-    return res.json({ data: result.data });
+    return res.json({ data: updatedPost });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+   next(err);
   }
 };
 
-const deletePost = async (req, res) => {
+const deletePost = async (req, res, next) => {
   const { id } = req.params;
-  if (!mongoose.isValidObjectId(id)) {
-    return res.status(400).json({ message: 'Invalid post ID' });
-  }
+  const { userId } = req.user;
 
   try {
-    const result = await postService.deletePost(id);
-
-    if (result.error) {
-      return res.status(404).json({ message: result.error });
-    }
+    const deletedPost = await postService.deletePost(id, userId);
 
     return res.json({
       message: 'Post deleted successfully',
-      data: result.data,
+      data: deletedPost,
     });
   } catch (err) {
-    return res.status(500).json({ message: 'Internal server error' });
+   next(err);
   }
 };
 
