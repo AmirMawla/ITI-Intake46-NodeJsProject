@@ -8,12 +8,15 @@ const { sanitizeMongoInput } = require("express-v5-mongo-sanitize");
 const { xss } = require('express-xss-sanitizer');
 const hpp = require('hpp');
 require('dotenv').config();
-
-const rateLimiter = require('./middlewares/rateLimiter');
+const { connectRabbitMQ, closeConnection } = require('./Config/rabbitmq');
+const { limiter } = require('./middlewares/rateLimiter');
 
 const userRoutes = require('./routes/user.routes');
 const postRoutes = require('./routes/post.routes');
 const donationRoutes = require('./routes/donation.routes');
+const commentRoutes = require('./routes/comment.routes');
+const likeRoutes = require('./routes/like.routes');
+const notificationRoutes = require('./routes/notification.routes');
 
 
 const app = express();
@@ -26,7 +29,7 @@ app.use(helmet());
 app.use(sanitizeMongoInput);
 app.use(xss());
 app.use(hpp());
-app.use(rateLimiter);
+app.use(limiter);
 
 
 
@@ -34,16 +37,47 @@ app.use(rateLimiter);
 app.use('/users', userRoutes);
 app.use('/posts', postRoutes);
 app.use('/donations', donationRoutes);
+app.use('/comments', commentRoutes);
+app.use('/likes', likeRoutes);
+app.use('/notifications', notificationRoutes);
+
+
+
 app.use(errorHandler);
+const startServer = async () => {
+  try {
+    const Port = Number(process.env.PORT) || 3000;
 
+    await mongoose.connect(`${process.env.MONGODB_URI}/${process.env.DB_NAME}`);
+    console.log('✅ Connected to MongoDB');
 
-// connect to mongodb
-const Port = Number(process.env.PORT)
+    await connectRabbitMQ();
 
-app.listen(Port, () => {
-  mongoose.connect(`${process.env.MONGODB_URI}/${process.env.DB_NAME}`)
-    .then(() => {
-      console.log('✅✅ Connected to MongoDB');
+    app.listen(Port, () => {
+      console.log(`✅ Server is running on Port: ${Port}`);
     });
-  console.log(`✅✅ Server is running on Port:${Port}`);
+
+  } catch (error) {
+    console.error('❌ Failed to start server:', error);
+    process.exit(1);
+  }
+};
+
+
+process.on('SIGINT', async () => {
+  console.log('\n⚠️  Shutting down gracefully...');
+  await closeConnection();
+  await mongoose.connection.close();
+  process.exit(0);
 });
+
+process.on('SIGTERM', async () => {
+  console.log('\n⚠️  Shutting down gracefully...');
+  await closeConnection();
+  await mongoose.connection.close();
+  process.exit(0);
+});
+
+startServer();
+
+module.exports = app;

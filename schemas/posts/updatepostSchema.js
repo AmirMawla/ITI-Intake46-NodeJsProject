@@ -6,7 +6,6 @@ const Updatepostbody = Joi.object(
     {
         title: Joi.string().min(3).max(30).required(),
         content: Joi.string().min(3).max(200).required(),
-        author: Joi.string().min(3).max(30).required(),
         tags: Joi.array()
             .items(Joi.string())
             .optional(),
@@ -17,13 +16,13 @@ const Updatepostbody = Joi.object(
 
 const Updatepostsquery = Joi.object(
     {
-        id: Joi.string().hex().length(24).required()
+        id: Joi.string().hex().length(24).required(),
     }
-)
+).required();
 
 const UpdatePostSchema = {
     body: Updatepostbody,
-    param: Updatepostsquery
+    params: Updatepostsquery
 }
 
 

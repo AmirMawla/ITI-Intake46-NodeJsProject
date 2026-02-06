@@ -13,4 +13,24 @@ const limiter = rateLimit({
     }
 })
 
-module.exports = limiter;
+
+const passwordResetLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000, 
+    max: 3, 
+    message: {
+        message: 'Too many password reset requests from this IP. Please try again after 15 minutes.',
+        retryAfter: '15 minutes'
+    },
+    standardHeaders: true, 
+    legacyHeaders: false, 
+    skipSuccessfulRequests: false,
+    skipFailedRequests: false,
+    handler: (req, res, next) => {
+        throw new APIError("Too many password reset requests . Please try again after 15 minutes.", 429)
+    }
+});
+
+module.exports = {
+    limiter,
+    passwordResetLimiter
+}

@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>New Reply</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background-color: #f4f4f4;
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 40px;
+            border-radius: 10px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            text-align: center;
+            padding-bottom: 30px;
+            border-bottom: 2px solid #9b59b6;
+        }
+        .header h1 {
+            color: #9b59b6;
+            margin: 0;
+            font-size: 28px;
+        }
+        .content {
+            padding: 30px 0;
+        }
+        .comment-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #bdc3c7;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .reply-box {
+            background-color: #f8f9fa;
+            border-left: 4px solid #9b59b6;
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+        }
+        .button {
+            display: inline-block;
+            padding: 15px 30px;
+            background-color: #9b59b6;
+            color: #ffffff !important;
+            text-decoration: none;
+            border-radius: 5px;
+            margin-top: 20px;
+            font-weight: bold;
+        }
+        .footer {
+            text-align: center;
+            padding-top: 30px;
+            border-top: 1px solid #eee;
+            color: #999;
+            font-size: 12px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>↩️ Someone Replied to Your Comment</h1>
+        </div>
+        
+        <div class="content">
+            <h2>Hello {{commentAuthorName}},</h2>
+            <p>
+                <strong>{{replierName}}</strong> replied to your comment.
+            </p>
+            
+            <div class="comment-box">
+                <p style="margin: 0; color: #666; font-size: 12px;">Your comment:</p>
+                <p style="margin: 5px 0 0 0; font-size: 14px;">
+                    "{{originalComment}}"
+                </p>
+            </div>
+            
+            <div class="reply-box">
+                <p style="margin: 0; color: #666; font-size: 12px;">
+                    <strong>{{replierName}}</strong> replied:
+                </p>
+                <p style="margin: 5px 0 0 0; font-size: 16px;">
+                    "{{replyContent}}"
+                </p>
+            </div>
+            
+            <div style="text-align: center;">
+                <a href="#" class="button">View Reply</a>
+            </div>
+        </div>
+        
+        <div class="footer">
+            <p>You're receiving this because someone replied to your comment.</p>
+            <p>&copy; 2025 AURA Platform. All rights reserved.</p>
+        </div>
+    </div>
+</body>
+</html>
